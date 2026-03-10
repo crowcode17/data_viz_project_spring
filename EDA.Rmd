@@ -11,9 +11,9 @@ library(tidyverse)
 library(skimr)
 
 df = read_csv("Xerces Site Counts by County.csv", n_max = 387)
-view(df)
 
-summary(df)
+# view(df)
+# summary(df)
 ```
 
 Total counts over time
@@ -28,27 +28,61 @@ df_long = df_long %>% mutate(
     time_period = factor(time_period, levels = tail(names(df), -3))
   )
 
-# site_count_years_group = site_count_years %>% 
-#   mutate(
-#     time_period = factor(time_period, levels = tail(names(df), -3))
-#   ) %>% 
-#   drop_na() %>% 
-#   group_by(time_period) %>% 
-#   summarize(total_counts = sum(count))
+site_count_years = df_long %>% 
+  drop_na() %>%
+  group_by(time_period) %>%
+  summarize(total_counts = sum(count))
 ```
 
 ```{r}
-# site_count_years %>% 
-#   ggplot(aes(x=time_period, y=total_counts)) +
-#     geom_col() +
-#     coord_flip() +
-#     theme_classic()
+# TODO: add error bars
 
-df_long %>% 
-  drop_na() %>% 
-  ggplot(aes(x=time_period, y=count, hue='COUNTY or REGION')) +
-    geom_point() +
-    geom_line() +
-    theme_classic()
+site_count_years %>% 
+  filter(!str_detect(site_count_years$time_period, ".S ")) %>% # to exclude season counts
+  ggplot(aes(x=time_period, y=total_counts)) +
+    geom_col() +
+    theme_classic() +
+    theme(
+      axis.text.x = element_text(angle = 45, vjust = .5)
+    )
 ```
+
+
+Map sites
+
+```{r}
+library(RColorBrewer)
+
+counties = map_data("county") %>% 
+  # filter(region %in% c('california','arizona'))
+  filter(region == 'california')
+
+df_map = df_long %>% mutate(
+  county = sub(",.*", "", tolower(df_long$`COUNTY or REGION`)),
+  state = case_when(
+    str_detect(df_long$`COUNTY or REGION`, ", AZ") ~ "arizona",
+    TRUE ~ "california"
+    )
+  ) %>%
+  filter(time_period == 2025) %>% 
+  full_join(counties, by = c("county" = "subregion", "state" = "region"))
+
+# TODO: draw lines between counties, add legend
+ggplot(counties) +
+  geom_polygon(data = counties, aes(x=long, y=lat, group=group), color = "white") +
+  geom_polygon(data = df_map, aes(x=long, y=lat, group=group, fill = count)) +
+  guides(fill=FALSE) +
+  ggtitle('Counts recorded') +
+  coord_fixed(1.3) +
+  scale_fill_distiller(palette = "Oranges", na.value = "gray50") +
+  theme(
+    axis.title = element_blank(),
+    axis.text = element_blank(), 
+    axis.ticks = element_blank(),
+    panel.grid = element_blank()
+    )
+```
+
+
+
 
