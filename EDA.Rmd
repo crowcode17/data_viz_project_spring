@@ -64,13 +64,14 @@ df_map = df_long %>% mutate(
     TRUE ~ "california"
     )
   ) %>%
-  filter(time_period == 2025) %>% 
+  filter(time_period == 2025) %>%
   full_join(counties, by = c("county" = "subregion", "state" = "region"))
 
-# TODO: draw lines between counties, add legend
-ggplot(counties) +
-  geom_polygon(data = counties, aes(x=long, y=lat, group=group), color = "white") +
-  geom_polygon(data = df_map, aes(x=long, y=lat, group=group, fill = count)) +
+# TODO: add legend
+ggplot() +
+  geom_polygon(data = df_map, 
+               aes(x=long, y=lat, group=group, fill = count),
+               color = "gray70") +
   guides(fill=FALSE) +
   ggtitle('Counts recorded') +
   coord_fixed(1.3) +
