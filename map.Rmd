@@ -11,9 +11,15 @@ library(ggplot2)
 library(lubridate)
 library(dplyr)
 library(stringr)
+library(sf)
+library(plotly)
+library(leaflet)
+library(mapview)
 
 df = read_csv("Xerces Site Counts by County.csv", n_max = 387)
-site_locations = read_csv("sites.csv", col_select = c("SiteID","Latitude","Longitude"))
+site_locations = read_csv("sites.csv", 
+                          col_select = c("SiteID","Site Name",
+                                         "Latitude","Longitude"))
 
 df_long = pivot_longer(df, 
                        cols = !c('SITE ID','SITE NAME','COUNTY or REGION'),
@@ -47,11 +53,37 @@ df_all_dates = df_long %>%
         str_starts(time_period, "LS") ~ year + LSday,
         TRUE ~ year + Xday
     ))
+
+head(df_peak)
 ```
 
 ```{r}
+# map just the site locations
 
-# mapview(df_site_locations, xcol='Latitude', ycol='Longitude')
+site_locations = drop_na(site_locations)
+
+mapview(site_locations, xcol='Longitude', ycol='Latitude',
+        crs=4269, grid = FALSE)
 ```
+
+```{r}
+# map site locations with size of points representing butterfly count
+# just 2025
+df_year = df_peak %>% filter(year == 2025)
+
+CA = map_data('state', 'california')
+
+ggplot() +
+    geom_polygon(data=CA, 
+                 aes(x=long, y=lat, group=group),
+                 fill='lightblue') +
+    coord_map() +
+    geom_point(data=df_year,
+               aes(x=Longitude, y=Latitude, size=count),
+               color='orange2',
+               alpha=0.5) +
+    theme_void()
+```
+
 
 
