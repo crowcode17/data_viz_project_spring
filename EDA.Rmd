@@ -7,8 +7,9 @@ editor_options:
 
 
 ```{r}
+setwd("~/Documents/VIZ_SPRING/data_viz_project_spring")
+
 library(tidyverse)
-library(skimr)
 
 df = read_csv("Xerces Site Counts by County.csv", n_max = 387)
 

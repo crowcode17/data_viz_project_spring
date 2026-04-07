@@ -1,0 +1,102 @@
+---
+title: "populations_lab"
+output: html_document
+---
+
+λt=Nt+1/Nt
+
+ΔN/Δt = Nt−Nt−1 / t2−t1
+
+Δλ/Δt = λt−λt−1 / t2−t1
+
+The magnitude of lambda indicates how the population is changing:
+
+    population growth when λ>1
+    population stability when λ=1
+    population decline when λ<1
+
+The other two formulas have equilibrium values of ΔN/Δt = 0 and Δλ/Δt = 0.
+
+```{r}
+setwd("~/Documents/VIZ_SPRING/data_viz_project_spring")
+
+library(tidyverse)
+library(ggplot2)
+library(lubridate)
+library(dplyr)
+library(stringr)
+
+df = read_csv("Xerces Site Counts by County.csv", n_max = 387)
+# view(df)
+```
+
+```{r}
+df_long = pivot_longer(df, 
+                       cols = !c('SITE ID','SITE NAME','COUNTY or REGION'),
+                       names_to = 'time_period',
+                       values_to = 'count')
+
+df_long = df_long %>% 
+    mutate(
+        # year = factor(time_period, levels = tail(names(df), -3)),
+        year = as.numeric(time_period),
+        season = case_when(
+            str_starts(time_period, "ES") ~ "Early Season",
+            str_starts(time_period, "LS") ~ "Late Season",
+            TRUE ~ "Peak Season"
+    )
+  )
+
+# only observations at peak season
+df_peak = df_long %>% filter(season == "Peak Season")
+
+# all observations, including late and early season
+ESday = round(yday("2023-10-31")/365, 3)
+Xday = round(yday("2023-11-25")/365, 3)
+LSday = round(yday("2023-12-31")/365, 3)
+
+df_all_dates = df_long %>%
+    mutate(date = case_when(
+        str_starts(time_period, "ES") ~ as.numeric(substring(time_period, 4, 7)) + ESday,
+        str_starts(time_period, "LS") ~ as.numeric(substring(time_period, 4, 7)) + LSday,
+        TRUE ~ as.numeric(time_period) + Xday
+    ))
+```
+
+Metrics: population growth rate for peak season counts
+
+```{r}
+df_peak = df_peak %>% 
+    arrange(year) %>% 
+    group_by(`SITE ID`) %>% 
+    mutate(
+        lambda = lead(count)/count,
+        lambda = if_else(is.infinite(lambda), 0,
+                         if_else(is.nan(lambda), 0, lambda)))
+
+df_peak = df_peak %>% 
+    arrange(year) %>% 
+    group_by(`SITE ID`) %>% 
+    mutate(
+        dNdt = (count-lag(count))/(year-lag(year)),
+        dldt = (lambda-lag(lambda))/(year-lag(year)))
+```
+
+```{r}
+ggplot(data = filter(df_peak, lambda > 0),
+       aes(x = year, y = log(lambda))) + #log-transforming lambda to yield r
+  geom_hline(yintercept = 0) +
+  geom_jitter(width = 0.25, color = "orange2", alpha = 0.6) +
+  stat_summary(fun = "median", geom = "point", shape = 18, size = 3) +
+  scale_y_continuous(name = "Monarch butterfly population growth rate per site") +
+  scale_x_continuous(breaks = seq(1990,2026,2)) +
+  theme_test()
+```
+
+map
+
+```{r}
+# mapview(df_locations, xcol=long, ycol=lat, 
+#         crs=4269, grid = FALSE)
+```
+
