@@ -92,11 +92,3 @@ ggplot(data = filter(df_peak, lambda > 0),
   scale_x_continuous(breaks = seq(1990,2026,2)) +
   theme_test()
 ```
-
-map
-
-```{r}
-# mapview(df_locations, xcol=long, ycol=lat, 
-#         crs=4269, grid = FALSE)
-```
-

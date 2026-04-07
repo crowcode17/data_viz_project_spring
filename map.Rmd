@@ -1,0 +1,57 @@
+---
+title: "map"
+output: html_document
+---
+
+```{r}
+setwd("~/Documents/VIZ_SPRING/data_viz_project_spring")
+
+library(tidyverse)
+library(ggplot2)
+library(lubridate)
+library(dplyr)
+library(stringr)
+
+df = read_csv("Xerces Site Counts by County.csv", n_max = 387)
+site_locations = read_csv("sites.csv", col_select = c("SiteID","Latitude","Longitude"))
+
+df_long = pivot_longer(df, 
+                       cols = !c('SITE ID','SITE NAME','COUNTY or REGION'),
+                       names_to = 'time_period',
+                       values_to = 'count')
+
+df_long = df_long %>%
+    mutate(
+        season = case_when(
+            str_starts(time_period, "ES") ~ "Early Season",
+            str_starts(time_period, "LS") ~ "Late Season",
+            TRUE ~ "Peak Season"),
+        year = as.numeric(str_match(time_period, "[0-9]{4}"))
+  )
+
+
+# join lat and longs to site IDs
+df_long = left_join(df_long, site_locations, by=c("SITE ID" = "SiteID"))
+
+# only observations at peak season
+df_peak = df_long %>% filter(season == "Peak Season")
+
+# all observations, including late and early season
+ESday = round(yday("2023-10-31")/365, 3)
+Xday = round(yday("2023-11-25")/365, 3)
+LSday = round(yday("2023-12-31")/365, 3)
+
+df_all_dates = df_long %>%
+    mutate(date = case_when(
+        str_starts(time_period, "ES") ~ year + ESday,
+        str_starts(time_period, "LS") ~ year + LSday,
+        TRUE ~ year + Xday
+    ))
+```
+
+```{r}
+
+# mapview(df_site_locations, xcol='Latitude', ycol='Longitude')
+```
+
+
