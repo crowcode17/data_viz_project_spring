@@ -15,6 +15,8 @@ library(sf)
 library(plotly)
 library(leaflet)
 library(mapview)
+library(gganimate)
+library(gifski)
 
 df = read_csv("Xerces Site Counts by County.csv", n_max = 387)
 site_locations = read_csv("sites.csv", 
@@ -59,7 +61,6 @@ head(df_peak)
 
 ```{r}
 # map just the site locations
-
 site_locations = drop_na(site_locations)
 
 mapview(site_locations, xcol='Longitude', ycol='Latitude',
@@ -69,7 +70,7 @@ mapview(site_locations, xcol='Longitude', ycol='Latitude',
 ```{r}
 # map site locations with size of points representing butterfly count
 # just 2025
-df_year = df_peak %>% filter(year == 2025)
+df_year = df_peak %>% filter(year == 1997)
 
 CA = map_data('state', 'california')
 
@@ -85,5 +86,27 @@ ggplot() +
     theme_void()
 ```
 
+```{r}
+CA = map_data('state', 'california')
 
+# animated gif
+p = ggplot(data=df_peak, aes(x=Longitude, y=Latitude)) +
+    geom_polygon(data=CA, 
+                 aes(x=long, y=lat, group=group),
+                 fill='lightblue') +
+    coord_map() +
+    geom_point(color='orange2', alpha=0.5, aes(size=count)) +
+    theme_void() +
+    ggtitle("Year: {frame_time}") +
+    transition_time(year) +
+    ease_aes("linear") +
+    enter_fade() +
+    exit_fade()
+
+# ggplotly(p)
+
+animate(p, nframes = 28, fps = 2, width = 600, height = 400, 
+        # start_pause = 10, end_pause = 10,
+        renderer = gifski_renderer())
+```
 
