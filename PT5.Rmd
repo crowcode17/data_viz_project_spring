@@ -1,0 +1,204 @@
+---
+title: "PT5 Rough Draft 4.7.26"
+author: "Hayden and George"
+editor_options:
+  chunk_output_type: console
+output:
+  html_document:
+    df_print: paged
+---
+
+# Monarch Butterflies
+
+```{r include=FALSE}
+library(tidyverse)
+library(skimr)
+library(RColorBrewer)
+library(ggplot2)
+library(lubridate)
+library(dplyr)
+library(stringr)
+library(sf)
+library(plotly)
+library(leaflet)
+library(mapview)
+library(gganimate)
+library(gifski)
+library(paletteer)
+library(ggthemes)
+
+df = read_csv("Xerces Site Counts by County.csv", n_max = 387)
+
+distance_data_raw = read_csv("distance_per_gram.csv")
+
+# reorder distance_data
+distance_data <- distance_data_raw %>%
+    # First sort by val. This sort the dataframe but NOT the factor levels
+    arrange(`km/gram`) %>%    
+    mutate(Animal = factor (Animal, levels = Animal)) 
+
+# lat and long info for each location
+site_locations = read_csv("sites.csv", 
+                          col_select = c("SiteID","Site Name",
+                                         "Latitude","Longitude"))
+
+# a little bit of wrangling...
+df_long = pivot_longer(df, 
+                       cols = !c('SITE ID','SITE NAME','COUNTY or REGION'),
+                       names_to = 'time_period',
+                       values_to = 'count') %>% 
+          mutate(
+                season = case_when(
+                    str_starts(time_period, "ES") ~ "Early Season",
+                    str_starts(time_period, "LS") ~ "Late Season",
+                    TRUE ~ "Peak Season"),
+                year = as.numeric(str_match(time_period, "[0-9]{4}")))
+
+# join lat and longs to site IDs
+df_long = left_join(df_long, site_locations, by=c("SITE ID" = "SiteID"))
+
+# only observations at peak season
+df_peak = df_long %>% filter(season == "Peak Season")
+```
+
+### Monarch Butterflies have one of the most incredible migrations of any animal species. 
+
+The eastern North American Monarch Butterfly travels a staggering 4800 km from southern Canada to northern Mexico every year. This impressive distance makes the Monarch's migration one of the farthest animal migrations, adjusting for body weight. 
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+lollipop_chart1 <- filter(distance_data, Animal != 'Brown Planthopper') %>%
+  ggplot(aes(y = Animal, x = `km/gram`)) +
+  geom_segment(aes(x=0, xend=`km/gram`, y=Animal, yend=Animal), color = 'gray') +
+  geom_point(aes(color = Type), alpha = 0.9) +
+  scale_x_log10() +
+  scale_color_manual(values = c('Terrestrial' = '#4daf4a', 'Marine' = '#377eb8', 'Bird' = '#e41a1c', 'Insect' = '#ff7f00'))+
+  # scale_size_continuous(range = c(1, 10)) +
+  labs(title = "Notable Animal Migrations\nAdjusting for Body Weight", x = 'km/gram (log)', y = NULL) +
+  theme_classic()
+  
+
+lollipop_chart1
+
+```
+
+### Unfortunately, the Western Monarch Butterfly population has declined significantly since 1997.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# df_long = pivot_longer(df, 
+#                        cols = !c('SITE ID','SITE NAME','COUNTY or REGION'),
+#                        names_to = 'time_period',
+#                        values_to = 'count')
+# 
+# df_long = df_long %>% mutate(
+#     time_period = factor(time_period, levels = tail(names(df), -3))
+#   )
+
+# site_count_years = df_long %>% 
+#   drop_na() %>%
+#   group_by(time_period) %>%
+#   summarize(total_counts = sum(count))
+
+site_count_years_final = df_long %>% 
+  drop_na() %>%
+  filter(!startsWith(as.character(time_period), "LS") & 
+         !startsWith(as.character(time_period), "ES")) %>%
+  group_by(time_period) %>%
+  summarize(total_counts = sum(count))
+
+bar_chart2 <- ggplot(site_count_years_final, 
+                     aes(x=time_period, y=total_counts)) +
+    geom_col(fill = "Orange2") +
+    labs(title = 'Western Monarch Butterfly Population Over Time', 
+         x = 'Year', y = 'Count of Monarchs') +
+    theme_classic() +
+    theme(
+      axis.text.x = element_text(angle = 45, vjust = .5)
+    )
+
+bar_chart2
+
+```
+
+### As a result of the declining Monarch population, efforts to track their population has increased. 
+
+In California, the number of Monarch tracking sites has steadily grown since 1997.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+df2 <- read_csv("sites_monitored.csv", n_max = 43)
+midseason_sites <- df2 %>%
+  filter(Type == 'Mid-Season')
+
+line_chart <- ggplot(midseason_sites, aes( x = Year, y = `Number of sites monitored`)) +
+  geom_line(color = 'orange') +
+  geom_point() +
+  labs(title = 'Monarch Butterfly Sites in California', y = 'Sites Monitored') +
+  theme_classic()
+
+line_chart
+
+# Maybe this would be better as an infographic with little boxes for each site?
+```
+
+### Where are Monarch monitoring sites located? 
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+site_locations = drop_na(site_locations)
+
+mapview(site_locations, xcol='Longitude', ycol='Latitude',
+        crs=4269, grid = FALSE)
+```
+
+### At their observed peak in 1997, over 1.2 million Monarch butterflies were seen overwintering in California.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+df_1997 = df_peak %>% filter(year == 1997)
+
+total_1997 = sum(df_1997$count, na.rm=TRUE)
+
+CA = map_data('state', 'california')
+
+p1 = ggplot(data=df_1997, aes(x=Longitude, y=Latitude)) +
+    geom_polygon(data=CA, 
+                 aes(x=long, y=lat, group=group),
+                 fill='snow1') +
+    geom_path(data=CA, 
+                 aes(x=long, y=lat, group=group),
+                 color='snow3') +
+    coord_map() +
+    # coord_map(xlim=c(-125,-114), ylim=c(39,31)) + # zoomed in
+    geom_point(alpha=0.5, aes(size=count, color=count)) +
+    scale_color_gradientn(colors=paletteer_c("ggthemes::Red-Gold", 30) ) +
+    theme_void()
+
+ggplotly(p1)
+```
+
+### Since then, the number of butterflies observed overwintering at each site has decreased.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# p = ggplot(data=df_peak, aes(x=Longitude, y=Latitude)) +
+#     geom_polygon(data=CA,
+#                  aes(x=long, y=lat, group=group),
+#                  fill='snow1') +
+#     geom_path(data=CA,
+#                  aes(x=long, y=lat, group=group),
+#                  color='snow3') +
+#     # coord_map() +
+#     coord_map(xlim=c(-125,-114), ylim=c(39,31)) +
+#     geom_point(alpha=0.5, aes(size=count, color=count)) +
+#     scale_color_gradientn(colors=paletteer_c("ggthemes::Red-Gold", 30) ) +
+#     theme_void()  +
+#     ggtitle("Year: {frame_time}") +
+#     transition_time(year) +
+#     ease_aes("linear") +
+#     enter_fade() +
+#     exit_fade()
+# # animate(p, nframes = 28, fps = 2, width = 400, height = 600,
+# #         # start_pause = 10, end_pause = 10,
+# #         renderer = gifski_renderer())
+# anim_save(animation = p, "map.gif")
+```
+
+![](map.gif)
+

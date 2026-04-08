@@ -1,0 +1,166 @@
+---
+title: "PT5 Rough Draft 4.7.26"
+author: "Hayden and George"
+editor_options:
+  chunk_output_type: console
+output:
+  html_document:
+    df_print: paged
+---
+
+
+```{r}
+library(tidyverse)
+library(skimr)
+library(RColorBrewer)
+
+df = read_csv("Xerces Site Counts by County.csv", n_max = 387)
+
+distance_data_raw = read_csv("distance_per_gram.csv")
+
+# reorder distance_data
+
+distance_data <- distance_data_raw %>%
+  arrange(`km/gram`) %>%    # First sort by val. This sort the dataframe but NOT the factor levels
+  mutate(Animal = factor (Animal, levels = Animal)) 
+# view(df)
+# summary(df)
+```
+
+1) Monarch Butterflies have one of the most incredible migrations of any animal species. The eastern North American Monarch Butterfly travels a staggering 4800 km from southern Canada to northern Mexico every year. This impressive distance makes the Monarch's migration one of the longest animal migrations, adjusting for body weight. 
+
+```{r}
+
+lollipop_chart1 <- filter(distance_data, Animal != 'Brown Planthopper') %>%
+  ggplot(aes(y = Animal, x = `km/gram`)) +
+  geom_segment(aes(x=0, xend=`km/gram`, y=Animal, yend=Animal), color = 'gray') +
+  geom_point(aes(color = Type), alpha = 0.9) +
+  scale_x_log10() +
+  scale_color_manual(values = c('Terrestrial' = '#4daf4a', 'Marine' = '#377eb8', 'Bird' = '#e41a1c', 'Insect' = '#ff7f00'))+
+  # scale_size_continuous(range = c(1, 10)) +
+  labs(title = "Notable Animal Migrations\nAdjusting for Body Weight", x = 'km/gram (log)', y = NULL) +
+  theme_classic()
+  
+
+lollipop_chart1
+
+```
+
+2) Unfortunately, the Western Monarch Butterfly population has declined significantly since 1997.
+
+```{r}
+df_long = pivot_longer(df, 
+                       cols = !c('SITE ID','SITE NAME','COUNTY or REGION'),
+                       names_to = 'time_period',
+                       values_to = 'count')
+
+df_long = df_long %>% mutate(
+    time_period = factor(time_period, levels = tail(names(df), -3))
+  )
+
+site_count_years = df_long %>% 
+  drop_na() %>%
+  group_by(time_period) %>%
+  summarize(total_counts = sum(count))
+
+site_count_years_final = df_long %>% 
+  drop_na() %>%
+  filter(!startsWith(as.character(time_period), "LS") & 
+         !startsWith(as.character(time_period), "ES")) %>%
+  group_by(time_period) %>%
+  summarize(total_counts = sum(count))
+
+bar_chart2 <- ggplot(site_count_years_final, 
+                     aes(x=time_period, y=total_counts)) +
+    geom_col(fill = "Orange2") +
+    labs(title = 'Western Monarch Butterfly Population Over Time', 
+         x = 'Year', y = 'Count of Monarchs') +
+    theme_classic() +
+    theme(
+      axis.text.x = element_text(angle = 45, vjust = .5)
+    )
+
+bar_chart2
+
+```
+
+3) As a result of the declining Monarch population, efforts to track their population has increased. In California, the number of Monarch tracking sites has steadily grown since 1997.
+
+```{r}
+
+df2 <- read_csv("sites_monitored.csv", n_max = 43)
+
+midseason_sites <- df2 %>%
+  filter(Type == 'Mid-Season')
+
+#sites_sum <- df2 %>%
+ # group_by(Year) %>%
+  #summarise(total_sites = sum(`Number of sites monitored`))
+
+line_chart <- ggplot(midseason_sites, aes( x = Year, y = `Number of sites monitored`)) +
+  geom_line(color = 'orange') +
+  geom_point() +
+  labs(title = 'Monarch Butterfly Sites in California', y = 'Sites Monitored') +
+  theme_classic()
+
+line_chart
+
+# Maybe this would be better as an infographic with little boxes for each site?
+```
+
+
+
+
+```{r}
+
+# scatter_plot1 <- filter(distance_data, Animal != 'Brown Planthopper') %>%
+#   ggplot(aes(x = log(`Distance (miles)`), y = log(`km/gram`), color = Type)) + # size = log(`Weight Max (grams)`)) +
+#   geom_point(alpha = 0.9) +
+#  # geom_text(data = filter(distance_data, Animal == 'Monarch butterfly'),aes(label = Animal)) +
+#   scale_color_manual(values = c('Terrestrial' = '#4daf4a', 'Marine' = '#377eb8', 'Bird' = '#e41a1c', 'Insect' = '#ff7f00'))+
+#   scale_size_continuous(range = c(1, 10)) +
+#   labs(title = "Migration Distance adjusted for Weight", x = "km (log)", y = "km/grams (log)", size = "Weight (log)") +
+#   theme_classic()
+# 
+# scatter_plot1
+
+```
+
+```{r}
+# 
+# scatter_plot2 <- filter(distance_data, Animal != 'Brown Planthopper') %>%
+#   ggplot(aes(x = log(`Distance (miles)`), y = log(`km/gram`), color = Type, size = log(`Weight Max (grams)`))) +
+#   geom_point(alpha = 0.9) +
+# geom_text(data = filter(distance_data, Animal == 'Monarch butterfly'),aes(label = Animal)) +
+#   scale_color_manual(values = c('Terrestrial' = '#4daf4a', 'Marine' = '#377eb8', 'Bird' = '#e41a1c', 'Insect' = '#ff7f00'))+
+#   scale_size_continuous(range = c(1, 10)) +
+#   geom_hline(yintercept = c(0)) +
+#   geom_vline(xintercept = c(8.25)) +
+#   labs(title = "Migration Distance adjusted for Weight", x = "Distance (log)", y = "km per gram (log)", size = "Weight (log)") +
+#   theme_classic()
+# 
+# scatter_plot2
+
+```
+
+
+
+```{r}
+
+# theme_4 <- theme_classic() +
+# theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+# 
+# lollipop_chart4 <- filter(distance_data, Animal != 'Brown Planthopper') %>%
+#   ggplot(aes(x = Animal, y = `km/gram`)) +
+#   geom_segment(aes(y=0, yend=`km/gram`, x=Animal, xend=Animal), color = 'gray') +
+#   geom_point(aes(color = Type), alpha = 0.9) +
+#   scale_y_log10() +
+#   scale_color_manual(values = c('Terrestrial' = '#4daf4a', 'Marine' = '#377eb8', 'Bird' = '#e41a1c', 'Insect' = '#ff7f00'))+
+#   # scale_size_continuous(range = c(1, 10)) +
+#   labs(title = "Migration Distance adjusted for Weight", x = NULL) +
+#   theme_4
+#   
+# 
+# lollipop_chart4
+
+```

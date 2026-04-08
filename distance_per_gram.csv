@@ -1,0 +1,18 @@
+Animal,Type,Return Trip (km),Weight Max (grams),km/gram,Distance (miles),Migration Source,Weight Source,Example of Route
+Brown Planthopper,Insect,"1,609",0.002,"804,670.0000","1,000",link,link,
+Painted Lady Butterfly,Insect,"14,484",0.5,"28,968.1200","9,000",link,link,
+Globe Skimmer Dragonfly,Insect,"14,000",0.50,"27,999.2973","8,699",link,link,India ↔ East Africa across the Indian Ocean (Multigenerational)
+Monarch Butterfly,Insect,"4,828",0.5,"9,656.0400","3,000",link,link,Eastern North America → Mexico and back (Multigenerational)
+Silver Y Moth,Insect,"1,931",0.5,"3,862.4160","1,200",link,link,
+Green Darner Dragonfly,Insect,"2,414",1.2,"2,011.6750","1,500",link,link,
+Arctic Tern,Bird,"96,078",120.0,800.6467,"59,700",link,link,Arctic breeding grounds → Antarctic pack-ice zone and back
+Northern Wheatear,Bird,"15,000",33.0,454.5410,"9,321",link,link,Alaska → East Africa
+Sooty Shearwater,Bird,"65,017",978.0,66.4799,"40,400",link,link,
+Bar-tailed Godwit,Bird,"13,559",720.0,18.8315,"8,425",link,link,Pacific circuit: Alaska → New Zealand → China → Alaska
+Leatherback Turtle,Marine,"11,909","640,000.0",0.0186,"7,400",link,link,"Pacific or Atlantic transoceanic routes (e.g., W. Pacific → California Current)"
+Northern Elephant Seal,Marine,"20,921","1,995,806.0",0.0105,"13,000",link,,
+Bluefin Tuna,Marine,"8,047","907,185.0",0.0089,"5,000",link,link,Mediterranean spawning areas → North American feeding grounds
+Caribou,Terrestrial,"1,199","181,437.0",0.0066,745,link,link,Annual forest ↔ tundra migration
+Zebra,Terrestrial,480,"385,100.0",0.0012,298,link,link,Botswana river valley → Namibia grazing areas
+Gray Whale,Marine,"19,312","40,823,313.0",0.0005,"12,000",link,link,Sakhalin (Russia) → Mexico
+Humpback Whale,Marine,"8,047","36,287,390.0",0.0002,"5,000",link,link,Samoa → Antarctic waters

@@ -17,6 +17,8 @@ library(leaflet)
 library(mapview)
 library(gganimate)
 library(gifski)
+library(paletteer)
+library(ggthemes)
 
 df = read_csv("Xerces Site Counts by County.csv", n_max = 387)
 site_locations = read_csv("sites.csv", 
@@ -69,24 +71,27 @@ mapview(site_locations, xcol='Longitude', ycol='Latitude',
 
 ```{r}
 # map site locations with size of points representing butterfly count
-# just 2025
+# just 1997
 df_year = df_peak %>% filter(year == 1997)
 
 CA = map_data('state', 'california')
 
-ggplot() +
+p = ggplot(data=df_year, aes(x=Longitude, y=Latitude)) +
     geom_polygon(data=CA, 
                  aes(x=long, y=lat, group=group),
                  fill='lightblue') +
+    geom_path(data=CA, 
+                 aes(x=long, y=lat, group=group),
+                 color='lightblue4') +
     coord_map() +
-    geom_point(data=df_year,
-               aes(x=Longitude, y=Latitude, size=count),
-               color='orange2',
-               alpha=0.5) +
-    theme_void()
+    geom_point(alpha=0.5, aes(size=count, color=count)) +
+    scale_color_gradientn(colors=paletteer_c("ggthemes::Red-Gold", 30) ) +
+    theme_void() 
 ```
 
 ```{r}
+# https://r-graph-gallery.com/package/gganimate.html
+
 CA = map_data('state', 'california')
 
 # animated gif
@@ -94,19 +99,23 @@ p = ggplot(data=df_peak, aes(x=Longitude, y=Latitude)) +
     geom_polygon(data=CA, 
                  aes(x=long, y=lat, group=group),
                  fill='lightblue') +
+    geom_path(data=CA, 
+                 aes(x=long, y=lat, group=group),
+                 color='lightblue4') +
     coord_map() +
-    geom_point(color='orange2', alpha=0.5, aes(size=count)) +
-    theme_void() +
+    geom_point(alpha=0.5, aes(size=count, color=count)) +
+    scale_color_gradientn(colors=paletteer_c("ggthemes::Red-Gold", 30) ) +
+    theme_void()  +
     ggtitle("Year: {frame_time}") +
     transition_time(year) +
     ease_aes("linear") +
     enter_fade() +
     exit_fade()
 
-# ggplotly(p)
-
-animate(p, nframes = 28, fps = 2, width = 600, height = 400, 
+animate(p, nframes = 28, fps = 2, width = 400, height = 600,
         # start_pause = 10, end_pause = 10,
         renderer = gifski_renderer())
+
+# anim_save(animation = p, "map.gif")
 ```
 
