@@ -1,0 +1,207 @@
+---
+title: "PT5 Rough Draft 4.7.26"
+author: "Hayden and George"
+editor_options:
+  chunk_output_type: console
+output:
+  html_document:
+    df_print: paged
+---
+
+# Monarch Butterflies
+
+TODO: image of migratory map or generation cycle should go here
+
+```{r include=FALSE}
+# setup chunk
+
+setwd("~/Documents/VIZ_SPRING/data_viz_project_spring")
+
+library(tidyverse)
+library(RColorBrewer)
+library(ggplot2)
+library(lubridate)
+library(dplyr)
+library(stringr)
+library(sf)
+library(plotly)
+library(leaflet)
+library(mapview)
+library(gganimate)
+library(gifski)
+library(paletteer)
+library(ggthemes)
+
+# counts observed at each site over time
+df = read_csv("xerces.csv", n_max = 387)
+
+# lat and long info for each location
+site_locations = read_csv("sites.csv", 
+                          col_select = c("SiteID","Site Name",
+                                         "Latitude","Longitude"))
+
+# a little bit of wrangling...
+df_long = pivot_longer(df, 
+                       cols = !c('SITE ID','SITE NAME','COUNTY or REGION'),
+                       names_to = 'time_period',
+                       values_to = 'count') %>% 
+          mutate(
+                season = case_when(
+                    str_starts(time_period, "ES") ~ "Early Season",
+                    str_starts(time_period, "LS") ~ "Late Season",
+                    TRUE ~ "Peak Season"),
+                year = as.numeric(str_match(time_period, "[0-9]{4}")),
+                time_period = as.numeric(time_period)) 
+
+# join lat and longs to site IDs
+df_long = left_join(df_long, site_locations, by=c("SITE ID" = "SiteID"))
+
+# only observations at peak season
+df_peak = df_long %>% filter(season == "Peak Season")
+
+# observed sightings of monarchs and milkweed plants
+sightings = read_csv("wmmm/monarchs_milkweed.csv", 
+                     col_select = c("MilkweedObservationID","MonarchObservationID",
+                                    "DateIdentified","RecordYear","State","County",
+                                    "HabitatType","Threats","Latitude","Longitude"))
+
+# categorize milkweed or monarch in one column
+sightings = sightings %>% 
+    mutate(
+        type = case_when(
+            !is.na(MilkweedObservationID) ~ "Milkweed",
+            TRUE ~ "Monarch"))
+```
+
+### Monarch Butterflies have one of the most incredible migrations of any animal species. 
+
+The eastern North American Monarch Butterfly travels a staggering 4800 km from southern Canada to northern Mexico every year. This impressive distance makes the Monarch's migration one of the farthest animal migrations, adjusting for body weight. 
+
+
+### Unfortunately, the Western Monarch Butterfly population has declined significantly since 1997.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# TODO: call out 2020 count, don't show every single year
+
+site_count_years = df_peak %>% 
+    drop_na() %>%
+    group_by(time_period) %>%
+    summarize(total_counts = sum(count))
+
+# counts per year displayed with a bar chart
+bar_chart <- ggplot(site_count_years,
+                     aes(x=time_period, y=total_counts)) +
+    geom_col(fill = "Orange2") +
+    labs(title = 'Western Monarch Butterflies Observed Each Year',
+         x = 'Year', y = 'Count of Monarchs') +
+    theme_classic() +
+    theme(
+      axis.text.x = element_text(angle = 45, vjust = .5)
+    )
+ggplotly(bar_chart)
+
+# counts per year displayed with a line graph
+line_graph <- ggplot(site_count_years, 
+                     aes(x=time_period, y=total_counts)) +
+    geom_line(color="Orange2") +
+    geom_point(size=0.8) +
+    labs(title = 'Western Monarch Butterflies Observed Each Year', 
+         x = 'Year', y = 'Count of Monarchs') +
+    theme_classic() +
+    theme(
+      axis.text.x = element_text(angle = 45, vjust = .5)
+    )
+ggplotly(line_graph)
+
+# idk which is better
+
+
+# https://www.statology.org/how-to-use-ggplot2-with-plotly-in-r-for-interactive-visualizations/
+```
+
+### At their observed peak in 1997, over 1.2 million Monarch butterflies were seen overwintering in California.
+
+Many Western Monarchs overwinter in southern California near the coast. Hover over points to see the name of the overwintering site and how many butterflies were seen there. 
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+df_1997 = df_peak %>% filter(year == 1997) %>% drop_na()
+
+# total_1997 = sum(df_1997$count, na.rm=TRUE)
+# CA = map_data('state', 'california')
+
+map = read_sf("north-america.geo.json")
+
+p = ggplot(map) +
+    geom_sf(
+        fill = 'white',
+        color = 'snow3'
+    ) +
+    # coord_sf(xlim=c(-125,-114), ylim=c(39,31)) +
+    coord_sf(xlim=c(-127,-114), ylim=c(40,31)) +
+    geom_point(
+        data = df_1997, aes(x=Longitude, y=Latitude, 
+                            size=count, color=count,
+                            text = paste(`SITE NAME`, '\nCount:',count)),
+        alpha = 0.5,
+        na.rm = TRUE) +
+    scale_color_gradientn(
+        colors=paletteer_c("ggthemes::Red-Gold", 30)) +
+    theme_void() +
+    theme(panel.background = element_rect(fill='#dceced'))
+    
+ggplotly(p, tooltip="text")
+```
+
+```{r}
+p_milk = ggplot(map) +
+    geom_sf(
+        fill = 'white',
+        color = 'snow3'
+    ) +
+    # coord_sf(xlim=c(-125,-114), ylim=c(39,31)) +
+    coord_sf(xlim=c(-127,-114), ylim=c(40,31)) +
+    geom_point(
+        data = df_peak, aes(x=Longitude, y=Latitude, 
+                            size=count, color=count,
+                            text = paste(`SITE NAME`, '\nCount:',count),
+                            frame=year),
+        alpha = 0.5) +
+    scale_color_gradientn(
+        colors=paletteer_c("ggthemes::Red-Gold", 30)) +
+    theme_void() +
+    theme(panel.background = element_rect(fill='#dceced'))
+    
+```
+
+
+### Since then, the number of butterflies observed overwintering at each site has decreased.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+p_anim = ggplot(map) +
+    geom_sf(
+        fill = 'white',
+        color = 'snow3'
+    ) +
+    # coord_sf(xlim=c(-125,-114), ylim=c(39,31)) +
+    coord_sf(xlim=c(-127,-114), ylim=c(40,31)) +
+    geom_point(
+        data = df_peak, aes(x=Longitude, y=Latitude, 
+                            size=count, color=count,
+                            text = paste(`SITE NAME`, '\nCount:',count),
+                            frame=year),
+        alpha = 0.5) +
+    scale_color_gradientn(
+        colors=paletteer_c("ggthemes::Red-Gold", 30)) +
+    theme_void() +
+    theme(panel.background = element_rect(fill='#dceced'))
+    
+ggplotly(p_anim, tooltip = "text") %>% 
+    animation_opts(frame = 800, easing = "linear", redraw = FALSE)
+```
+
+
+Sources
+
+https://xerces.org/
+https://www.monarchmilkweedmapper.org/
+https://www.monarchparasites.org/oe 

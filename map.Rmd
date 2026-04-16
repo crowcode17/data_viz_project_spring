@@ -28,17 +28,13 @@ site_locations = read_csv("sites.csv",
 df_long = pivot_longer(df, 
                        cols = !c('SITE ID','SITE NAME','COUNTY or REGION'),
                        names_to = 'time_period',
-                       values_to = 'count')
-
-df_long = df_long %>%
-    mutate(
-        season = case_when(
-            str_starts(time_period, "ES") ~ "Early Season",
-            str_starts(time_period, "LS") ~ "Late Season",
-            TRUE ~ "Peak Season"),
-        year = as.numeric(str_match(time_period, "[0-9]{4}"))
-  )
-
+                       values_to = 'count') %>% 
+          mutate(
+                season = case_when(
+                    str_starts(time_period, "ES") ~ "Early Season",
+                    str_starts(time_period, "LS") ~ "Late Season",
+                    TRUE ~ "Peak Season"),
+                year = as.numeric(str_match(time_period, "[0-9]{4}")))
 
 # join lat and longs to site IDs
 df_long = left_join(df_long, site_locations, by=c("SITE ID" = "SiteID"))
@@ -47,16 +43,16 @@ df_long = left_join(df_long, site_locations, by=c("SITE ID" = "SiteID"))
 df_peak = df_long %>% filter(season == "Peak Season")
 
 # all observations, including late and early season
-ESday = round(yday("2023-10-31")/365, 3)
-Xday = round(yday("2023-11-25")/365, 3)
-LSday = round(yday("2023-12-31")/365, 3)
-
-df_all_dates = df_long %>%
-    mutate(date = case_when(
-        str_starts(time_period, "ES") ~ year + ESday,
-        str_starts(time_period, "LS") ~ year + LSday,
-        TRUE ~ year + Xday
-    ))
+# ESday = round(yday("2023-10-31")/365, 3)
+# Xday = round(yday("2023-11-25")/365, 3)
+# LSday = round(yday("2023-12-31")/365, 3)
+# 
+# df_all_dates = df_long %>%
+#     mutate(date = case_when(
+#         str_starts(time_period, "ES") ~ year + ESday,
+#         str_starts(time_period, "LS") ~ year + LSday,
+#         TRUE ~ year + Xday
+#     ))
 
 head(df_peak)
 ```
@@ -112,10 +108,10 @@ p = ggplot(data=df_peak, aes(x=Longitude, y=Latitude)) +
     enter_fade() +
     exit_fade()
 
-animate(p, nframes = 28, fps = 2, width = 400, height = 600,
-        # start_pause = 10, end_pause = 10,
-        renderer = gifski_renderer())
+# animate(p, nframes = 28, fps = 2, width = 400, height = 600,
+#         # start_pause = 10, end_pause = 10,
+#         renderer = gifski_renderer())
 
-# anim_save(animation = p, "map.gif")
+anim_save(animation = p, "map.gif")
 ```
 

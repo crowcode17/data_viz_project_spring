@@ -11,6 +11,7 @@ output:
 # Monarch Butterflies
 
 ```{r include=FALSE}
+setwd("~/Documents/VIZ_SPRING/data_viz_project_spring")
 library(tidyverse)
 library(skimr)
 library(RColorBrewer)
@@ -76,9 +77,7 @@ lollipop_chart1 <- filter(distance_data, Animal != 'Brown Planthopper') %>%
   labs(title = "Notable Animal Migrations\nAdjusting for Body Weight", x = 'km/gram (log)', y = NULL) +
   theme_classic()
   
-
 lollipop_chart1
-
 ```
 
 ### Unfortunately, the Western Monarch Butterfly population has declined significantly since 1997.
@@ -116,7 +115,6 @@ bar_chart2 <- ggplot(site_count_years_final,
     )
 
 bar_chart2
-
 ```
 
 ### As a result of the declining Monarch population, efforts to track their population has increased. 
@@ -124,7 +122,6 @@ bar_chart2
 In California, the number of Monarch tracking sites has steadily grown since 1997.
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-
 df2 <- read_csv("sites_monitored.csv", n_max = 43)
 midseason_sites <- df2 %>%
   filter(Type == 'Mid-Season')
@@ -152,6 +149,7 @@ mapview(site_locations, xcol='Longitude', ycol='Latitude',
 ### At their observed peak in 1997, over 1.2 million Monarch butterflies were seen overwintering in California.
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
+library(ggthemes)
 df_1997 = df_peak %>% filter(year == 1997)
 
 total_1997 = sum(df_1997$count, na.rm=TRUE)
@@ -165,11 +163,14 @@ p1 = ggplot(data=df_1997, aes(x=Longitude, y=Latitude)) +
     geom_path(data=CA, 
                  aes(x=long, y=lat, group=group),
                  color='snow3') +
-    coord_map() +
-    # coord_map(xlim=c(-125,-114), ylim=c(39,31)) + # zoomed in
+    coord_fixed(ratio=1.3) +
     geom_point(alpha=0.5, aes(size=count, color=count)) +
-    scale_color_gradientn(colors=paletteer_c("ggthemes::Red-Gold", 30) ) +
+    scale_color_gradientn(
+        colors=paletteer_c("ggthemes::Red-Gold", 30)) +
+    # scale_color_viridis_c("plasma") +
     theme_void()
+
+# p1 = p1 %>% 
 
 ggplotly(p1)
 ```
@@ -185,20 +186,24 @@ ggplotly(p1)
 #                  aes(x=long, y=lat, group=group),
 #                  color='snow3') +
 #     # coord_map() +
-#     coord_map(xlim=c(-125,-114), ylim=c(39,31)) +
+#     coord_fixed(xlim=c(-125,-114), ylim=c(39,31),
+#               ratio=1.3) +
 #     geom_point(alpha=0.5, aes(size=count, color=count)) +
-#     scale_color_gradientn(colors=paletteer_c("ggthemes::Red-Gold", 30) ) +
+#     scale_size_continuous(name="Count") +
+#     scale_color_gradientn(name="Count", colors=paletteer_c("ggthemes::Red-Gold", 30)) +
 #     theme_void()  +
 #     ggtitle("Year: {frame_time}") +
 #     transition_time(year) +
 #     ease_aes("linear") +
 #     enter_fade() +
 #     exit_fade()
-# # animate(p, nframes = 28, fps = 2, width = 400, height = 600,
-# #         # start_pause = 10, end_pause = 10,
-# #         renderer = gifski_renderer())
-# anim_save(animation = p, "map.gif")
+
+# animate(p, nframes = 29, fps = 2, width = 400, height = 600,
+#         # start_pause = 10, end_pause = 10,
+#         renderer = gifski_renderer())
+
+# anim_save(animation = p, "map2.gif")
 ```
 
-![](map.gif)
+![](map2.gif)
 
